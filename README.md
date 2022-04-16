@@ -19,16 +19,16 @@ assert(wib::weight_in_bytes(vecs) == 10*1024);
 #include <wib/wib.hpp>
 // Create a class
 struct Town {
-	struct Street {
-		std::string name_{};
-		std::vector<int> numbers_{};
-	};
-	struct Citizen {
-		std::string name_{};
-		int age_{};
-	};
-	std::vector<Citizen> citizens_{};
-	std::vector<Street> streets_{};
+  struct Street {
+    std::string name_{};
+    std::vector<int> numbers_{};
+  };
+  struct Citizen {
+    std::string name_{};
+    int age_{};
+  };
+  std::vector<Citizen> citizens_{};
+  std::vector<Street> streets_{};
 };
 // Insert data with heap allocation
 auto town = Town{};
@@ -38,11 +38,11 @@ town.streets_.emplace("Big main street", {1,3,5,7,9});
 // Get size of heap allocation
 auto size = wib::weight_in_bytes(town);
 size_t expected_size = 
-	sizeof(Town::Citizen) * town.citizens_.capacity() + 
-		town.citizens_[0].name_.capacity() +
-		town.citizens_[1].name_.capacity() +
-	sizeof(Town::Street) * town.streets_.size() +
-		sizeof(int) * town.streets_[0].numbers_.capacity();
+  sizeof(Town::Citizen) * town.citizens_.capacity() + 
+    town.citizens_[0].name_.capacity() +
+    town.citizens_[1].name_.capacity() +
+  sizeof(Town::Street) * town.streets_.size() +
+    sizeof(int) * town.streets_[0].numbers_.capacity();
 assert(size == expected_size);
 
 // List unknown types
@@ -51,7 +51,7 @@ assert(wib::unknown_types(tpl_a).size() == 0);
 class Unknown {
 public:
 private:
-	double a,b,c;
+  double a,b,c;
 };
 auto tpl_b = std::tuple<int, std::string, Unknown>;
 assert(wib::unknown_types(tpl_b).size() == 1);
@@ -59,10 +59,10 @@ assert(wib::unknown_types(tpl_b).size() == 1);
 // Provide members for intrespection
 class Custom {
 public:
-	auto as_tuple() const { return std::tie(a,b,c,s); }
+  auto as_tuple() const { return std::tie(a,b,c,s); }
 private:
-	double a,b,c;
-	std::string s;
+  double a,b,c;
+  std::string s;
 };
 auto custom = Custom{};
 assert(wib::unknown_types(custom).size() == 0);
@@ -119,6 +119,7 @@ assert(wib::weight_in_bytes(sv) >= 17);
 ```
 
 ### Introspcting std::any
+```cpp
 using bytevec_t = std::vector<char>;
 auto a = std::any{};
 auto s = std::string{200};
@@ -134,6 +135,7 @@ assert(wib::unknown_types(a).size() == 0);
 a = v;
 assert(wib::weight_in_bytes<types>(a) >= 400);
 assert(wib::unknown_types(a).size() == 0);
+```
 
 ##Customization
 * #define WIB_ENABLE_PFR to utilize boost::pfr
