@@ -2,7 +2,7 @@
 Header-only C++17 which library which approximates the allocation size of any struct/class and it's members.
 
 ## Quick start
-Allocation size of vector of vectors
+Allocation size of vector-of-vector<char>
 ```cpp
 auto vecs = std::vector<std::vector<char>>{};
 vecs.resize(10);
@@ -14,7 +14,7 @@ Allocation size of class
 ```cpp
 #define WIB_ENABLE_PFR // User boost::pfr for introspection
 #include <wib/wib.hpp>
-// Create a class
+
 struct Town {
   struct Street {
     std::string name_{};
@@ -27,23 +27,25 @@ struct Town {
   std::vector<Citizen> citizens_{};
   std::vector<Street> streets_{};
 };
-// Insert data with heap allocation
-auto town = Town{};
-town.citizens_.emplace("Karl Peter Andersson", 42);
-town.citizens_.emplace("Emma Britta Larsson", 52);
-town.streets_.emplace("Big main street", {1,3,5,7,9});
-// Get size of heap allocation
-auto size = wib::weight_in_bytes(town);
-size_t expected_size = 
-  sizeof(Town::Citizen) * town.citizens_.capacity() + 
-    town.citizens_[0].name_.capacity() +
-    town.citizens_[1].name_.capacity() +
-  sizeof(Town::Street) * town.streets_.size() +
-    sizeof(int) * town.streets_[0].numbers_.capacity();
-assert(size == expected_size);
+
+auto main() {
+  auto town = Town{};
+  // Insert data with heap allocation
+  town.citizens_.emplace("Karl Peter Andersson", 42);
+  town.citizens_.emplace("Emma Britta Larsson", 52);
+  town.streets_.emplace("Big main street", {1,3,5,7,9});
+  
+  // Get size of heap allocation
+  auto size = wib::weight_in_bytes(town);
+  size_t expected_size = 
+    sizeof(Town::Citizen) * town.citizens_.capacity() + 
+      town.citizens_[0].name_.capacity() +
+      town.citizens_[1].name_.capacity() +
+    sizeof(Town::Street) * town.streets_.size() +
+      sizeof(int) * town.streets_[0].numbers_.capacity();
+  assert(size == expected_size);
+}
 ```
-
-
 
 ## Features
 * Handles containers, pointers, std::tuple, std::variant out of the box
@@ -89,7 +91,7 @@ vec.clear();
 assert(wib::weight_in_bytes(vec) == 1000);
 ```
 
-### Small buffer containers
+### Internal buffer containers
 For containers which keeps small numbers of elements inside them, no allocation is reported:
 ```cpp
 // Example using std::string
