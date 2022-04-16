@@ -2,19 +2,16 @@
 Header-only C++17 which library which approximates the allocation size of any struct/class and it's members.
 
 ## Quick start
+Allocation size of vector of vectors
 ```cpp
-// std::vector of chars
-auto vec = std::vector<char>{};
-vec.resize(1024);
-assert(wib::weight_in_bytes(vec) == 1024);
-
-// std::vector of std::vector<char>
 auto vecs = std::vector<std::vector<char>>{};
 vecs.resize(10);
 std::fill(vecs.begin(), vecs.end(), vec);
 assert(wib::weight_in_bytes(vecs) == 10*1024);
+```
 
-// Example with custom class
+Allocation size of class
+```cpp
 #define WIB_ENABLE_PFR // User boost::pfr for introspection
 #include <wib/wib.hpp>
 // Create a class
@@ -44,30 +41,8 @@ size_t expected_size =
   sizeof(Town::Street) * town.streets_.size() +
     sizeof(int) * town.streets_[0].numbers_.capacity();
 assert(size == expected_size);
-
-// List unknown types
-auto tpl_a = std::tuple<int, std::string>;
-assert(wib::unknown_types(tpl_a).size() == 0);
-class Unknown {
-public:
-private:
-  double a,b,c;
-};
-auto tpl_b = std::tuple<int, std::string, Unknown>;
-assert(wib::unknown_types(tpl_b).size() == 1);
-
-// Provide members for intrespection
-class Custom {
-public:
-  auto as_tuple() const { return std::tie(a,b,c,s); }
-private:
-  double a,b,c;
-  std::string s;
-};
-auto custom = Custom{};
-assert(wib::unknown_types(custom).size() == 0);
-
 ```
+
 
 
 ## Features
@@ -79,6 +54,7 @@ assert(wib::unknown_types(custom).size() == 0);
 * Codebases built upon cereal 
 
 ## Feature examples
+
 ### Pointers to same element
 Pointers are tracked, so many pointers to the same object will not add additional size.
 ```cpp
@@ -88,7 +64,18 @@ array.fill(sptr);
 assert(wib::weight_in_bytes(sptr) == wib::weight_in_bytes(array));
 ```
 
-
+### Provide as_tuple() for introspection
+```cpp
+class Custom {
+public:
+  auto as_tuple() const { return std::tie(a,b,c,s); }
+private:
+  double a,b,c;
+  std::string s;
+};
+auto custom = Custom{};
+assert(wib::unknown_types(custom).size() == 0);
+```
 
 ### Unused capacity
 For containers with possibly unused capacity (std::vector, std::string), the current allocation is taken into account, not the number of elements.
@@ -137,10 +124,10 @@ assert(wib::weight_in_bytes<types>(a) >= 400);
 assert(wib::unknown_types(a).size() == 0);
 ```
 
-##Customization
-* #define WIB_ENABLE_PFR to utilize boost::pfr
-* #define WIB_ENABLE_CISTA to utilize introspection via Cista
-* #define WIB_CEREAL to enable introspection via Cereal 
+## Customization
+* Define WIB_ENABLE_PFR to utilize boost::pfr
+* Define WIB_ENABLE_CISTA to utilize introspection via Cista
+* Define WIB_CEREAL to enable introspection via Cereal 
 
 ## Notes:
 * structs/classes smaller than the size of pointer is assumed to not heap-allocate
