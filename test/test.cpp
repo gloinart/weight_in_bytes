@@ -36,11 +36,11 @@ TEST_CASE("std::any - custom types") {
 		arr.fill(bytevec_t(1024));
 		a = arr;
 		// No types passed
-		REQUIRE(wib::unknown_typeindexes(a).size() == 1);
+		REQUIRE(wib::unknown_types(a).size() == 1);
 		REQUIRE(wib::weight_in_bytes(a) == 0);
 		// Types passed
 		using any_types = std::tuple<array_of_bytevecs_t>;
-		REQUIRE(wib::unknown_typeindexes<any_types>(a).size() == 0);
+		REQUIRE(wib::unknown_types<any_types>(a).size() == 0);
 		REQUIRE(
 			wib::weight_in_bytes<any_types>(a) ==
 			sizeof(arr) + 1024 * arr.size()
@@ -63,13 +63,13 @@ TEST_CASE("std::any - custom types") {
 		v.reserve(2);
 		v.push_back(type_a{});
 		v.push_back(type_b{});
-		REQUIRE(wib::unknown_typeindexes(v).size() == 2);
+		REQUIRE(wib::unknown_types(v).size() == 2);
 		REQUIRE(
 			wib::weight_in_bytes(v) ==
 			sizeof(std::any) * 2
 		);
 		using any_types = std::tuple<type_a, type_b>;
-		REQUIRE(wib::unknown_typeindexes<any_types>(v).size() == 0);
+		REQUIRE(wib::unknown_types<any_types>(v).size() == 0);
 		REQUIRE(
 			wib::weight_in_bytes<any_types>(v) ==
 			(sizeof(std::any) * v.capacity()) + // vector allocation
@@ -88,9 +88,9 @@ TEST_CASE("small objects") {
 		char c{};
 	};
 	static_assert(sizeof(str) < sizeof(void*));
-	REQUIRE(wib::unknown_typeindexes(str{}).size() == 0);
-	REQUIRE(wib::unknown_typeindexes(float{}).size() == 0);
-	REQUIRE(wib::unknown_typeindexes(double{}).size() == 0);
+	REQUIRE(wib::unknown_types(str{}).size() == 0);
+	REQUIRE(wib::unknown_types(float{}).size() == 0);
+	REQUIRE(wib::unknown_types(double{}).size() == 0);
 	REQUIRE(wib::weight_in_bytes(str{}) == 0);
 	REQUIRE(wib::weight_in_bytes(float{}) == 0);
 	REQUIRE(wib::weight_in_bytes(double{}) == 0);
@@ -103,7 +103,7 @@ TEST_CASE("c-array") {
 	for (auto&& v : arr) {
 		v.resize(128);
 	}
-	auto unknown = wib::unknown_typeindexes(arr);
+	auto unknown = wib::unknown_types(arr);
 	REQUIRE(unknown.size() == 0);
 	REQUIRE(wib::weight_in_bytes(arr) == 128 * 100);
 };
@@ -121,7 +121,7 @@ TEST_CASE("continous memory containers") {
 		for (auto&& v : arr) {
 			v.resize(128);
 		}
-		auto unknown = wib::unknown_typeindexes(arr);
+		auto unknown = wib::unknown_types(arr);
 		REQUIRE(unknown.size() == 0);
 		REQUIRE(wib::weight_in_bytes(arr) == 128 * 100);
 		for (auto& v : arr) {
@@ -362,7 +362,7 @@ TEST_CASE("custom access") {
 			bytevec_t d{};
 		};
 		str_t s{};
-		REQUIRE(wib::unknown_typeindexes(s).size() == 0);
+		REQUIRE(wib::unknown_types(s).size() == 0);
 		REQUIRE(wib::weight_in_bytes(s) == 0);
 		s.set_size(1024);
 		REQUIRE(wib::weight_in_bytes(s) == 1024*2);
@@ -375,7 +375,7 @@ TEST_CASE("custom access") {
 		};
 		str_t s{};
 		s.dummy_a.resize(2048);
-		REQUIRE(wib::unknown_typeindexes(s).size() == 0);
+		REQUIRE(wib::unknown_types(s).size() == 0);
 		REQUIRE(wib::weight_in_bytes(s) == 54);
 	}
 
@@ -383,8 +383,8 @@ TEST_CASE("custom access") {
 }
 
 TEST_CASE("unknown_types") {
-	REQUIRE(wib::unknown_typeindexes(std::chrono::steady_clock::now()).size() == 1);
-	REQUIRE(wib::unknown_typeindexes(std::mutex{}).size() == 1);
+	REQUIRE(wib::unknown_types(std::chrono::steady_clock::now()).size() == 1);
+	REQUIRE(wib::unknown_types(std::mutex{}).size() == 1);
 }
 
 TEST_CASE("boost::pfr::for_each_field and cista::for_each_field") {
@@ -404,14 +404,14 @@ TEST_CASE("boost::pfr::for_each_field and cista::for_each_field") {
 	str_t s{};
 	s.z.v.resize(2000);
 #if defined(WIB_PFR_ENABLED) || defined(WIB_CISTA_ENABLED)
-	REQUIRE(wib::unknown_typeindexes(s).size() == 0);
+	REQUIRE(wib::unknown_types(s).size() == 0);
 	REQUIRE(wib::weight_in_bytes(s) == 2000);
-	REQUIRE(wib::unknown_typeindexes(empty_struct).size() == 0);
+	REQUIRE(wib::unknown_types(empty_struct).size() == 0);
 	REQUIRE(wib::weight_in_bytes(empty_struct) == 0);
 #else
-	REQUIRE(wib::unknown_typeindexes(s).size() == 1);
+	REQUIRE(wib::unknown_types(s).size() == 1);
 	REQUIRE(wib::weight_in_bytes(s) == 0);
-	REQUIRE(wib::unknown_typeindexes(empty_struct).size() == 0);
+	REQUIRE(wib::unknown_types(empty_struct).size() == 0);
 	REQUIRE(wib::weight_in_bytes(empty_struct) == 0);
 #endif
 }

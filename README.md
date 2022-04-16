@@ -34,26 +34,46 @@ auto main() {
   town.citizens_.emplace("Karl Peter Andersson", 42);
   town.citizens_.emplace("Emma Britta Larsson", 52);
   town.streets_.emplace("Big main street", {1,3,5,7,9});
+  town.streets_.emplace("Small side street", {2,4,6,8,10});
   
   // Get size of heap allocation
   auto size = wib::weight_in_bytes(town);
   size_t expected_size = 
-    sizeof(Town::Citizen) * town.citizens_.capacity() + 
-      town.citizens_[0].name_.capacity() +
-      town.citizens_[1].name_.capacity() +
+    sizeof(Town::Citizen) * town.citizens_.size() + 
+      town.citizens_[0].name_.size() +
+      town.citizens_[1].name_.size() +
     sizeof(Town::Street) * town.streets_.size() +
-      sizeof(int) * town.streets_[0].numbers_.capacity();
+      sizeof(int) * town.streets_[0].numbers_.size() +
+      sizeof(int) * town.streets_[1].numbers_.size();
   assert(size == expected_size);
 }
 ```
 
 ## Features
-* Handles containers, pointers, std::tuple, std::variant out of the box
-* Automatic introspection of classes provided via via boost::pfr, cista
+* Handles containers, pointers, std::optional, std::tuple, std::variant, std::any out of the box
 * std::any is introspected by providing a type-list of possible types
+* Automatic introspection of classes provided via via boost::pfr, cista
 * Multiple pointers to the same element counts as a single allocation
-* Containers using small buffer optimization are taken account for
-* Codebases built upon cereal 
+* Containers with internal buffers (such as std::string) are taken account for
+
+## Reference
+Retrieve heap allocation size of any type.
+```cpp
+template <typename AnyTypeList = empty_typelist_t, typename T>
+[[nodiscard]] auto wib::weight_in_bytes(
+  const T& value,
+  efollow_raw_pointers follow_raw_pointers = efollow_raw_pointers::False
+)->size_t;
+```
+
+List types which coudn't be inspected
+```cpp
+template <typename AnyTypeList = empty_typelist_t, typename T>
+[[nodiscard]] auto wib::unknown_types(
+  const T& value,
+  efollow_raw_pointers follow_raw_pointers = efollow_raw_pointers::False
+)->typeindex_set_t;
+```
 
 ## Feature examples
 
@@ -110,31 +130,38 @@ assert(wib::weight_in_bytes(sv) >= 17);
 ### Introspcting std::any
 ```cpp
 using bytevec_t = std::vector<char>;
-auto a = std::any{};
-auto s = std::string{200};
-auto v = bytevec_t(400};
-a = s;
+const auto s = std::string(200);
+const auto v = bytevec_t(400};
 // No types provided
-assert(wib::weight_in_bytes(a) == 0);
-assert(wib::unknown_types(a).size() == 1);
-// Provide types
-using types = std::tuple<std::string, bytevec_t>;
-assert(wib::weight_in_bytes<types>(a) => 200);
-assert(wib::unknown_types(a).size() == 0);
-a = v;
-assert(wib::weight_in_bytes<types>(a) >= 400);
-assert(wib::unknown_types(a).size() == 0);
+{
+  auto a = std::any{};
+	a = s;
+  assert(wib::weight_in_bytes(a) == 0);
+  assert(wib::unknown_types(a).size() == 1);
+}
+// Provide type-list as a std::tuple
+{
+  using types = std::tuple<std::string, bytevec_t>;
+  auto a = std::any{};
+	a = s;
+  assert(wib::weight_in_bytes<types>(a) => 200);
+  assert(wib::unknown_types(a).size() == 0);
+  a = v;
+  assert(wib::weight_in_bytes<types>(a) >= 400);
+  assert(wib::unknown_types(a).size() == 0);
+}
 ```
 
-## Customization
+## Configuration
 * Define WIB_ENABLE_PFR to utilize boost::pfr
 * Define WIB_ENABLE_CISTA to utilize introspection via Cista
 * Define WIB_CEREAL to enable introspection via Cereal 
 
-## Notes:
+## Notes
 * structs/classes smaller than the size of pointer is assumed to not heap-allocate
 * std::weak_ptr's are assumed to be non-owning and ignored
 * std::basic_string_view<T> are assumed to be non-owning and ignored
+* std::function is not handled
 * std::unique_ptr's to arrays (std::unique_ptr<T[]>), only uses takes the first element into account as the size cannot be determined.
 
 ## Future updates:

@@ -17,7 +17,7 @@ template <typename AnyTypeList = empty_typelist_t, typename T>
 )->size_t;
 
 template <typename AnyTypeList = empty_typelist_t, typename T>
-[[nodiscard]] auto unknown_typeindexes(
+[[nodiscard]] auto unknown_types(
   const T& value,
   efollow_raw_pointers follow_raw_pointers = efollow_raw_pointers::False
 )->typeindex_set_t;
@@ -583,7 +583,7 @@ auto weight_in_bytes(
 }
 
 template <typename AnyTypeList, typename T>
-auto unknown_typeindexes(
+auto unknown_types(
   const T& value,
   const efollow_raw_pointers follow_raw_pointers
 ) -> typeindex_set_t {
