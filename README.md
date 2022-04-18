@@ -1,29 +1,36 @@
 # Weight in bytes
-Header-only C++17 which library which approximates the allocation size of any struct/class and it's members.
+Header-only C++17 which library which approximates the size of memory allocated by any struct/class and it's members.
+Class members are automatically reflected via boost::pfr, Cista, or manually by providing an as_tuple() member function for you class. 
+Additionally, if your code base uses Cereal for serialization, it's serialization functions can be hijacked in order to reflect class members.
+
 
 ## Quick start
-Allocation size of vector-of-vector<char>
+Allocated memory of list-of-vector<char>
 ```cpp
-auto vecs = std::vector<std::vector<char>>{};
-vecs.resize(10);
-std::fill(vecs.begin(), vecs.end(), vec);
-assert(wib::weight_in_bytes(vecs) == 10*1024);
+using bytevec_t = std::vector<char>;
+auto bytevecs = std::list<bytevec_t>{};
+bytevecs.resize(10);
+const auto bytevec = bytevec_t(1024);
+std::fill(bytevecs.begin(), bytevecs.end(), bytevec);
+size_t expected_size = bytevecs.size() * bytevec.size();
+size_t size = wib::weight_in_bytes(bytevecs);
+assert(size == expected_size);
 ```
 
-Allocation size of class
+Allocated memory of class
 ```cpp
-#define WIB_ENABLE_PFR // User boost::pfr for introspection
+#define WIB_ENABLE_PFR // Use boost::pfr for automatic reflection
 #include <wib/wib.hpp>
 
+struct Street {
+  std::string name_{};
+  std::vector<int> numbers_{};
+};
+struct Citizen {
+  std::string name_{};
+  int age_{};
+};
 struct Town {
-  struct Street {
-    std::string name_{};
-    std::vector<int> numbers_{};
-  };
-  struct Citizen {
-    std::string name_{};
-    int age_{};
-  };
   std::vector<Citizen> citizens_{};
   std::vector<Street> streets_{};
 };
@@ -52,11 +59,12 @@ auto main() {
 ## Features
 * Handles containers, pointers, std::optional, std::tuple, std::variant, std::any out of the box
 * std::any is introspected by providing a type-list of possible types
-* Automatic introspection of classes provided via via boost::pfr, cista
+* Automatic reflection of class members are provided via boost::pfr or Cista
+* Automatic reflection of class members can utilize Cereal serialization functions
 * Multiple pointers to the same element counts as a single allocation
-* Containers with internal buffers (such as std::string) are taken account for
+* Containers with internal buffers (such as std::string) are not reported as allocated until the contained data is allocated on the heap
 
-## Reference
+## Public interface
 Retrieve heap allocation size of any type.
 ```cpp
 template <typename AnyTypeList = empty_typelist_t, typename T>
@@ -66,7 +74,7 @@ template <typename AnyTypeList = empty_typelist_t, typename T>
 )->size_t;
 ```
 
-List types which coudn't be inspected
+List types which coudn't be reflected.
 ```cpp
 template <typename AnyTypeList = empty_typelist_t, typename T>
 [[nodiscard]] auto wib::unknown_types(
@@ -75,21 +83,16 @@ template <typename AnyTypeList = empty_typelist_t, typename T>
 )->typeindex_set_t;
 ```
 
-## Feature examples
+## Features by example
 
-### Pointers to same element
-Pointers are tracked, so many pointers to the same object will not add additional size.
-```cpp
-auto sptr = std::make_shared<int>();
-auto array = std::array<std::shared_ptr<int>, 100>{};
-array.fill(sptr);
-assert(wib::weight_in_bytes(sptr) == wib::weight_in_bytes(array));
-```
 
-### Provide as_tuple() for introspection
+### Provide as_tuple() for reflection
 ```cpp
 class Custom {
 public:
+  Custom() {
+    s.resize(3000);
+  }
   auto as_tuple() const { return std::tie(a,b,c,s); }
 private:
   double a,b,c;
@@ -97,6 +100,99 @@ private:
 };
 auto custom = Custom{};
 assert(wib::unknown_types(custom).size() == 0);
+assert(wib::weight_in_bytes(custom) == 3000);
+```
+
+### Provide wight_in_bytes() member function 
+```cpp
+For special cases, a precalculated size be provided via weight_in_bytes() const -> size_t member function.
+class GLTexture {
+public:
+  GLTexture() {
+    glGenTextures(1, &textureid_);
+    glBindTexture(GL_TEXTURE_2D, textureid_); 
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_R, width, height, 0, GL_R8, GL_UNSIGNED_BYTE, nullptr);
+  }
+  auto weight_in_bytes() const -> size_t { return width*height;}
+private:
+  GLint textureid_;
+  int width = 1024;
+  int height = 1024;
+};
+auto texture = GLTexture{};
+assert(wib::weight_in_bytes(texture) == 1024*1024);
+```
+
+### Introspecting std::any
+```cpp
+using bytevec_t = std::vector<char>;
+const auto s = std::string(200);
+const auto v = bytevec_t(400};
+// No types provided
+{
+  auto a = std::any{};
+  a = s;
+  // The std::string is not recognized
+  assert(wib::weight_in_bytes(a) == 0);
+  assert(wib::unknown_types(a).size() == 1);
+}
+// Provide type-list as a std::tuple
+{
+  using types = std::tuple<std::string, bytevec_t>;
+  auto a = std::any{};
+  a = s;
+  // The std::string is recognized
+  assert(wib::weight_in_bytes<types>(a) == 200);
+  assert(wib::unknown_types(a).size() == 0);
+  // The bytevec_t is recognized
+  a = v;
+  assert(wib::weight_in_bytes<types>(a) == 400);
+  assert(wib::unknown_types(a).size() == 0);
+}
+```
+
+### Utilize Cereal for reflection
+```cpp
+#define WIB_CEREAL
+#include <wib/wib.hpp>
+class MyClass {
+public:
+  MyClass() {
+    a.resize(100);
+    b.resize(100);
+    c.resize(100);
+  }
+  template <typename Ar>
+  auto serialize(Ar& ar) -> void {
+    ar(a, b);
+    ar(c);
+  }
+private:
+  std::string a,b,c;
+};
+auto main() {
+  auto myclass = MyClass{};
+  // The serialize(Ar&ar) member function is hijacked to introspect the members of MyClass
+  assert(wib::weight_in_bytes(myclass) == 300);
+  assert(wib::unknown_types(myclass).size() == 0);
+}
+```
+
+### Pointers to same element
+Pointers are tracked, so many pointers to the same object will not add additional size.
+```cpp
+using bytes_t = std::array<char, 1000>;
+auto pair = std::pair<
+  std::shared_ptr<bytes_t>,
+  std::shared_ptr<bytes_t>
+>{};
+assert(wib::weight_in_bytes(pair) == 0);
+myclass.first = std::make_shared<bytes_t>();
+assert(wib::weight_in_bytes(pair) == 1000));
+myclass.second = myclass.first;
+assert(wib::weight_in_bytes(pair) == 1000); // Pointers refers to same object
+myclass.second = std::make_shared<bytes_t>();
+assert(wib::weight_in_bytes(pair) == 2000); // Pointers refers to different objects
 ```
 
 ### Unused capacity
@@ -107,19 +203,25 @@ assert(wib::weight_in_bytes(vec) == 0);
 vec.resize(1000);
 assert(wib::weight_in_bytes(vec) == 0);
 vec.clear();
-// vec still holds an allocation of 1000 bytes
+// vec still holds the allocation of 1000 bytes
 assert(wib::weight_in_bytes(vec) == 1000);
+// Remove superflous allocation
+vec.shrink_to_fit();
+assert(wib::weight_in_bytes(vec) == 0);
 ```
 
-### Internal buffer containers
+### Containers with internal buffers
 For containers which keeps small numbers of elements inside them, no allocation is reported:
 ```cpp
-// Example using std::string
+// Example using std::string, assuming an internal buffer of 15 chars
 auto str = std::string{"abc"};
+// str is smaller than the internal buffer size, nothing is allocated
 assert(wib::weight_in_bytes(str) == 0);
-str.resize(1000);
-assert(wib::weight_in_bytes(str) >= 1000);
-// Example with boost::container::small_vector
+// Assign a string of 20 chars
+str = "12345678901234567890";
+assert(wib::weight_in_bytes(str) == 20);
+
+// Example with boost::container::small_vector<T, N>
 auto sv = boost::container::small_vector<char, 16>{};
 sv.resize(16);
 assert(wib::weight_in_bytes(sv) == 0);
@@ -127,42 +229,28 @@ sv.resize(17);
 assert(wib::weight_in_bytes(sv) >= 17);
 ```
 
-### Introspcting std::any
-```cpp
-using bytevec_t = std::vector<char>;
-const auto s = std::string(200);
-const auto v = bytevec_t(400};
-// No types provided
-{
-  auto a = std::any{};
-	a = s;
-  assert(wib::weight_in_bytes(a) == 0);
-  assert(wib::unknown_types(a).size() == 1);
-}
-// Provide type-list as a std::tuple
-{
-  using types = std::tuple<std::string, bytevec_t>;
-  auto a = std::any{};
-	a = s;
-  assert(wib::weight_in_bytes<types>(a) => 200);
-  assert(wib::unknown_types(a).size() == 0);
-  a = v;
-  assert(wib::weight_in_bytes<types>(a) >= 400);
-  assert(wib::unknown_types(a).size() == 0);
-}
-```
 
 ## Configuration
-* Define WIB_ENABLE_PFR to utilize boost::pfr
-* Define WIB_ENABLE_CISTA to utilize introspection via Cista
-* Define WIB_CEREAL to enable introspection via Cereal 
+* Define WIB_ENABLE_PFR to utilize boost::pfr for automatic reflection
+* Define WIB_ENABLE_CISTA to utilize Cista for automatic reflection
+* (If your codebase uses Cereal) Define WIB_CEREAL to utilize MyClass::serialize(Ar&ar) or MyClass::save(Ar& ar) for reflection.
+
 
 ## Notes
+* Overhead for structure of containers other than continous memory allocated is not included
 * structs/classes smaller than the size of pointer is assumed to not heap-allocate
 * std::weak_ptr's are assumed to be non-owning and ignored
 * std::basic_string_view<T> are assumed to be non-owning and ignored
-* std::function is not handled
+* allocated storage of std::function is not handled
 * std::unique_ptr's to arrays (std::unique_ptr<T[]>), only uses takes the first element into account as the size cannot be determined.
+* Unit-tests is available in test/test.cpp (uses Catch)
 
-## Future updates:
-Customization via free functions in addition 
+
+## License
+Use however you want, crediting is nice but not nessesary.
+
+
+## Future updates
+* Customization via free functions in addition to as_tuple()
+* Extend Cereal support to utilize non-intrusive and versioned Cereal functions
+* Improve overhead for standard library containers
