@@ -5,7 +5,7 @@
 //#define WIB_PFR_ENABLED
 //#define WIB_CISTA_ENABLED
 #define WIB_CEREAL_ENABLED
-#include "../include/weight_in_bytes.h"
+#include "../wib/wib.hpp"
 
 #include <iostream>
 #include <map>
