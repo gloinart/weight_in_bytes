@@ -54,7 +54,7 @@ auto main() {
 * Handles containers, pointers, std::optional, std::tuple, std::variant, std::any out of the box
 * std::any is introspected by providing a type-list of possible types
 * Automatic reflection of class members are provided via boost::pfr or Cista
-* Automatic reflection of class members can utilize Cereal serialization functions
+* Automatic reflection of class members can utilize Cereal serialization functions (conside work in progress)
 * Multiple pointers to the same element counts as a single allocation
 * Containers with internal buffers (such as std::string) are not reported as allocated until the contained data is allocated on the heap
 
@@ -146,6 +146,7 @@ const auto v = bytevec_t(400};
 ```
 
 ### Utilize Cereal for reflection
+Note that hijacking Cereal is work in progress
 ```cpp
 #define WIB_CEREAL
 #include <wib/wib.hpp>
@@ -246,5 +247,6 @@ Use however you want, crediting is nice but not nessesary.
 
 ## Future updates
 * Customization via free functions in addition to as_tuple()
-* Extend Cereal support to utilize non-intrusive and versioned Cereal functions
+* Improve Cereal support to utilize non-intrusive and versioned Cereal functions
 * Improve overhead for standard library containers
+* Add more reflection possibilities (boost::describe and boost:serialize)
