@@ -24,6 +24,7 @@ struct Town {
 
 auto main() {
   auto town = Town{};
+
   // Insert data with heap allocation
   town.citizens_.emplace("Karl-Petter Andersson", 42);
   town.citizens_.emplace("Emma-Britta Larsson", 52);
