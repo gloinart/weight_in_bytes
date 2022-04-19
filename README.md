@@ -3,9 +3,9 @@ Header-only C++17 which library which approximates the size of memory allocated 
 Class members are automatically reflected via boost::pfr, Cista, or manually by providing an as_tuple() member function for you class. 
 Additionally, if your code base uses Cereal for serialization, it's serialization functions can be hijacked in order to reflect class members.
 
-<em>More info on [Cista](https://github.com/felixguendling/cista)</em>
-<em>More info on [Boost PFR](https://www.boost.org/doc/libs/1_79_0/doc/html/boost_pfr.html)</em>
-<em>More info on [Cereal](https://uscilab.github.io/cereal/)</em>
+<em>More info on [Cista](https://github.com/felixguendling/cista)</em>,
+<em>[Boost PFR](https://www.boost.org/doc/libs/1_79_0/doc/html/boost_pfr.html)</em>,
+<em>[Cereal](https://uscilab.github.io/cereal/)</em>
 
 ## Quick start
 ```cpp
