@@ -2,7 +2,7 @@
 #include <typeindex>
 #include <unordered_set>
 #include <tuple>
-
+#include <cstddef> // for size_t
 
 // Public interface
 namespace wib {
@@ -59,6 +59,8 @@ namespace {
 #include <variant>
 #include <optional>
 #include <any>
+#include <string_view>
+#include <vector>
 
 
 
