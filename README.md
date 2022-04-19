@@ -59,7 +59,7 @@ auto main() {
 * Containers with internal buffers (such as std::string) are not reported as allocated until the contained data is allocated on the heap
 
 ## Public interface
-Retrieve heap allocation size of any type.
+Approximate heap allocation size of any object:
 ```cpp
 template <typename AnyTypeList = empty_typelist_t, typename T>
 [[nodiscard]] auto wib::weight_in_bytes(
@@ -68,7 +68,7 @@ template <typename AnyTypeList = empty_typelist_t, typename T>
 )->size_t;
 ```
 
-List types which coudn't be reflected.
+List types which coudn't be reflected:
 ```cpp
 template <typename AnyTypeList = empty_typelist_t, typename T>
 [[nodiscard]] auto wib::unknown_types(
@@ -241,12 +241,14 @@ assert(wib::weight_in_bytes(sv) >= 17);
 * Unit-tests is available in test/test.cpp (uses Catch)
 
 
-## License
-Use however you want, crediting is nice but not nessesary.
-
 
 ## Future updates
-* Customization via free functions in addition to as_tuple()
+* More accurate overhead calculation of containers
+* Add non-intrusive version of as_tuple()
 * Improve Cereal support to utilize non-intrusive and versioned Cereal functions
 * Improve overhead for standard library containers
 * Add more reflection possibilities (boost::describe and boost:serialize)
+
+
+## License
+Use however you want, crediting is nice but not nessesary.
