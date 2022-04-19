@@ -1,23 +1,10 @@
-# Weight in bytes
+# Weight In Bytes
 Header-only C++17 which library which approximates the size of memory allocated by any struct/class and it's members.
 Class members are automatically reflected via boost::pfr, Cista, or manually by providing an as_tuple() member function for you class. 
 Additionally, if your code base uses Cereal for serialization, it's serialization functions can be hijacked in order to reflect class members.
 
 
 ## Quick start
-Allocated memory of list-of-vector<char>
-```cpp
-using bytevec_t = std::vector<char>;
-auto bytevecs = std::list<bytevec_t>{};
-bytevecs.resize(10);
-const auto bytevec = bytevec_t(1024);
-std::fill(bytevecs.begin(), bytevecs.end(), bytevec);
-size_t expected_size = bytevecs.size() * bytevec.size();
-size_t size = wib::weight_in_bytes(bytevecs);
-assert(size == expected_size);
-```
-
-Allocated memory of class
 ```cpp
 #define WIB_ENABLE_PFR // Use boost::pfr for automatic reflection
 #include <wib/wib.hpp>
@@ -38,21 +25,27 @@ struct Town {
 auto main() {
   auto town = Town{};
   // Insert data with heap allocation
-  town.citizens_.emplace("Karl Peter Andersson", 42);
-  town.citizens_.emplace("Emma Britta Larsson", 52);
-  town.streets_.emplace("Big main street", {1,3,5,7,9});
-  town.streets_.emplace("Small side street", {2,4,6,8,10});
+  town.citizens_.emplace("Karl-Petter Andersson", 42);
+  town.citizens_.emplace("Emma-Britta Larsson", 52);
+  town.streets_.emplace("Big main street", {1,3,5,7,9,11,13,15,17});
+  town.streets_.emplace("Small side street", {2,4,6});
   
-  // Get size of heap allocation
-  auto size = wib::weight_in_bytes(town);
+  // Examine the allocated size of 'town' (this it it!)
+  size_t size = wib::weight_in_bytes(town);
+
+  // ...under the hood, approximately the following summation is executed:
   size_t expected_size = 
-    sizeof(Town::Citizen) * town.citizens_.size() + 
-      town.citizens_[0].name_.size() +
-      town.citizens_[1].name_.size() +
-    sizeof(Town::Street) * town.streets_.size() +
-      sizeof(int) * town.streets_[0].numbers_.size() +
-      sizeof(int) * town.streets_[1].numbers_.size();
+    sizeof(Town::Citizen) * town.citizens_.capacity() + 
+      town.citizens_[0].name_.capacity() +
+      town.citizens_[1].name_.capacity() +
+    sizeof(Town::Street) * town.streets_.capacity() +
+      sizeof(int) * town.streets_[0].numbers_.capacity() +
+      sizeof(int) * town.streets_[1].numbers_.capacity();
   assert(size == expected_size);
+
+  // Verify we where able to examine all types in 'town'
+  auto unknown_types = wib::unknown_types(town);
+  assert(unknown_types.size() == 0);
 }
 ```
 
@@ -103,9 +96,9 @@ assert(wib::unknown_types(custom).size() == 0);
 assert(wib::weight_in_bytes(custom) == 3000);
 ```
 
-### Provide wight_in_bytes() member function 
-```cpp
+### Provide weight_in_bytes() member function 
 For special cases, a precalculated size be provided via weight_in_bytes() const -> size_t member function.
+```cpp
 class GLTexture {
 public:
   GLTexture() {
