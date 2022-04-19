@@ -206,7 +206,7 @@ struct scope_exit_t {
 
 // Iterate tuple
 template <typename Tpl, typename F, size_t Idx = 0>
-[[nodiscard]] auto tuple_for_each(const Tpl& tpl, const F& f) -> void {
+auto tuple_for_each(const Tpl& tpl, const F& f) -> void {
   constexpr auto is_last = Idx >= std::tuple_size_v<Tpl>;
   if constexpr (is_last) {
     return;
