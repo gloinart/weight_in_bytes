@@ -34,7 +34,7 @@ auto main() {
   // Examine the allocated size of 'town' (this it it!)
   size_t size = wib::weight_in_bytes(town);
 
-  // ...under the hood, approximately the following summation is executed:
+  // Under the hood, approximately the following summation is executed:
   size_t expected_size = 
     sizeof(Town::Citizen) * town.citizens_.capacity() + 
       town.citizens_[0].name_.capacity() +
