@@ -199,7 +199,7 @@ For containers with possibly unused capacity (std::vector, std::string), the cur
 auto vec = std::vector<char>{};
 assert(wib::weight_in_bytes(vec) == 0);
 vec.resize(1000);
-assert(wib::weight_in_bytes(vec) == 0);
+assert(wib::weight_in_bytes(vec) == 1000);
 vec.clear();
 // vec still holds the allocation of 1000 bytes
 assert(wib::weight_in_bytes(vec) == 1000);
