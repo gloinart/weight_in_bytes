@@ -34,7 +34,7 @@ auto main() {
   town.streets_.emplace("Big main street", {1,3,5,7,9,11,13,15,17});
   town.streets_.emplace("Small side street", {2,4,6});
   
-  // Examine the allocated size of 'town' (this it it!)
+  // Examine the allocated size of 'town' (THIS IS IT!)
   size_t size = wib::weight_in_bytes(town);
 
   // Under the hood, approximately the following summation is executed:
